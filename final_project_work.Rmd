@@ -256,6 +256,22 @@ Classification
 * Cumulative logit
 
 ```{r}
+library(nnet)
+library(pROC)
+library(caret)
+library(glmnet)
 
+#split train/test
+set.seed(543)
+train_ind = sample.int(dim(data)[1], dim(data)[1] * .7)
+data_tr = data[train_ind,]
+data_te = data[-train_ind,]
+
+#base model (ignore ordering)
+mod0 = multinom(Target~., data=data_tr)
+probs = predict(mod0, data_te, type = "probs")
+preds = predict(mod0, data_te, type = "class")
+
+confusionMatrix(as.factor(preds), as.factor(data_te$Target)) #already decent
 ```
 
