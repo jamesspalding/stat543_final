@@ -1,0 +1,261 @@
+---
+title: "Untitled"
+author: "James Spalding"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, include = F, message = F)
+library(tidyverse)
+library(VGAM)
+select = dplyr::select
+```
+
+# Data Cleaning
+
+```{r}
+data_cleaner = function(data){
+  #remove redundant variables
+  data = data %>% select(-c(SQBescolari, SQBage, SQBhogar_total, SQBedjefe,
+                            SQBhogar_nin, SQBovercrowding, SQBdependency, SQBmeaned,
+                            agesq))
+  
+  
+  
+  ### Fill NAs ###
+  #colSums(is.na(data))
+  
+  #6405 v2a1: rent payment
+  house_types = cbind(data$v2a1, data$tipovivi1, data$tipovivi2,
+                      data$tipovivi3, data$tipovivi4, data$tipovivi5)
+  
+  colSums(is.na(as.data.frame(house_types) %>% filter(data$tipovivi5 == 1))) 
+  #5600 tipovivi1: owned
+  #153 tipovivi4: precarious
+  #751 tipoivi5: assigned
+  
+  #assign 0 to NA in v2a1
+  data$v2a1[is.na(data$v2a1)] = 0
+  
+  
+  #v18q1 tablets owned:
+  tabs = cbind(data$v18q, data$v18q1)
+  # NA if zero, so replace with 0.
+  data$v18q1[is.na(data$v18q1)] = 0
+  
+  
+  #rez_esc: years behind in school
+  school = as.data.frame(cbind(data$rez_esc, data$age))
+  school_not_na = school %>% filter(!is.na(school$V1))
+  #applies only to those in school (7-17)
+  #fill with 0
+  #in school binary
+  data$in_school = as.numeric(!is.na(data$rez_esc))
+  data$rez_esc[is.na(data$rez_esc)] = 0
+  
+  
+  #meaneduc: avg edu for adults
+  age18 = data %>% filter(age == 19 | age == 18)
+  mean(na.omit(age18$meaneduc)) #13.66
+  mean(na.omit(data$meaneduc)) #9.23
+  #since small portion (5 obs), fill with mean for age (13.66)
+  data$meaneduc[is.na(data$meaneduc)] = 13.66
+  
+  
+  ### Standardize types ###
+  #sapply(data, class) 
+  
+  #edjefe/edjefa
+  #yes=1, no=0
+  data$edjefa[data$edjefa == 'no'] = 0
+  data$edjefa[data$edjefa == 'yes'] = 1
+  data$edjefa = as.numeric(data$edjefa)
+  
+  data$edjefe[data$edjefe == 'no'] = 0
+  data$edjefe[data$edjefe == 'yes'] = 1
+  data$edjefe = as.numeric(data$edjefe)
+  
+  
+  # #dependancy: (number of members of the household younger than 19 or older than 64)/(number of member of household between 19 and 64)         
+  table(data$dependency)
+  
+  #calculate for missing vals (0 if none)
+  dependency_calc = data %>%
+    group_by(idhogar) %>%
+    summarise(count_in_range = sum(age >= 19 & age <= 64),
+              count_out_range = sum(!(age >= 19 & age <= 64)),
+              ratio = ifelse(count_out_range == 0, 0, count_in_range / count_out_range))
+  
+  result = inner_join(data, dependency_calc, by = "idhogar")
+  result = result %>% select(-c(count_in_range, count_out_range,dependency))
+  result$dependency = result$ratio
+  data = result %>% select(-c(ratio))
+  
+  
+  
+  ##### New Variables #####
+  
+  #new var for number of people in school by household
+  school_count = data %>%
+    group_by(idhogar) %>%
+    summarise(school_count = sum(in_school == 1))
+  
+  data = inner_join(data, school_count, by = "idhogar")
+  
+  
+  #count of children behind in school
+  children_behind = data %>%
+    group_by(idhogar) %>%
+    summarise(children_behind = sum(rez_esc != 0))
+  
+  data = inner_join(data, children_behind, by = "idhogar")
+  
+  
+  #count of disabled people in house
+  disabled_count = data %>%
+    group_by(idhogar) %>%
+    summarise(dis_count = sum(dis == 1))
+  
+  data = inner_join(data, disabled_count, by = "idhogar")
+  
+  
+  #has non-family in household binary
+  non_fam = data %>%
+    group_by(idhogar) %>%
+    summarise(non_family = as.numeric(any(parentesco12 != 0)))
+  
+  data = inner_join(data, non_fam, by = "idhogar")
+  
+  
+  #split ids
+  numeric_data = data %>% select(-c(Id,idhogar,Target))
+  
+  #check correlations (spearman for nonlinear)
+  # corrs = cor(numeric_data, method = 'spearman') %>%
+  #           as.data.frame() %>%
+  #           mutate(var1 = rownames(.)) %>%
+  #           gather(var2, value, -var1) %>%
+  #           arrange(desc(value)) %>%
+  #           group_by(value) %>%
+  #           filter(row_number()==1)
+  # 
+  # corrs = corrs[corrs$value >= .7 | corrs$value <= -.7,]
+  
+  #tamhog, tamviv, r4t3 basically same info
+  # male/female, area1/area2, and abast... should be binary
+  
+  #remove more redundant data
+  data = data %>% select(-c(female, area2, abastaguafuera, tamhog, tamviv, v18q,in_school))
+  
+  
+  #which vars are not the same within households
+  # independent_vars = data %>%
+  #   group_by(idhogar) %>%
+  #   summarize(across(everything(), ~ n_distinct(.) > 1)) %>%
+  #   select(-idhogar) %>%
+  #   summarize(across(everything(), any)) %>%
+  #   pivot_longer(cols = everything(), names_to = "Column", values_to = "NotConstant") %>%
+  #   filter(NotConstant) %>%
+  #   pull(Column)
+  # 
+  # print(independent_vars)
+  
+  
+  ##### Head of Household Data ####
+  
+  data_hh = data %>%
+    filter(parentesco1 == 1) %>%
+    select(-c(r4h1,r4h2,r4h3,r4m1,r4m2,r4m3,r4t2,r4t3,
+              mobilephone,edjefe,edjefa,dis, #redundant
+              parentesco1,parentesco2,parentesco3,parentesco4,parentesco5,
+              parentesco6,parentesco7,parentesco8,parentesco9,parentesco10,
+              parentesco11,parentesco12, #all are in parentesco1, so useless
+              elimbasu5, estadocivil1, #all zero
+              Id, idhogar
+              ))
+  
+  #which(colSums(data_hh) == 0) #remove 0s
+  
+  ### House quality variable ###
+  
+  #pisonotiene: no floor
+  #pareddes: waste walls
+  #cielorazo=0: no ceiling
+  #noelec
+  #sanitario1: no toilet
+  #energcocinar1: no kitchen
+  #refrig=0: no refridgerator
+  
+  #epared1-3: wall quality
+  #etecho1-3:roof quality
+  #eviv: floor quality
+  
+  house_vars = data_hh %>%
+    select(c(pisonotiene,pareddes,cielorazo,noelec,sanitario1,refrig,
+             energcocinar1,epared1,epared2,epared3,etecho1,etecho2,
+             etecho3,eviv1,eviv2,eviv3))
+  
+  #flip binary to make same as others
+  house_vars$refrig = as.numeric(house_vars$refrig == 0)
+  house_vars$cielorazo = as.numeric(house_vars$cielorazo == 0)
+  
+  #exterior vars
+  house_vars$wall_qual = ifelse(house_vars$epared1 == 1, 0,
+              ifelse(house_vars$epared2 == 1, .5,
+              ifelse(house_vars$epared3 == 1, 1,999)))
+  
+  house_vars$roof_qual = ifelse(house_vars$etecho1 == 1, 0,
+              ifelse(house_vars$etecho2 == 1, .5,
+              ifelse(house_vars$etecho3 == 1, 1,999)))
+  
+  house_vars$floor_qual = ifelse(house_vars$eviv1 == 1, 0,
+              ifelse(house_vars$eviv2 == 1, .5,
+              ifelse(house_vars$eviv3 == 1, 1,999)))
+  
+  house_vars$exterior_qual = house_vars %>%
+    select(roof_qual,wall_qual,floor_qual) %>%
+    rowMeans()
+  
+  #interior vars
+  house_vars$interior_qual = house_vars %>%
+    select(pisonotiene,pareddes,cielorazo,noelec,sanitario1,energcocinar1,refrig) %>%
+    rowMeans()
+  
+  house_vars$interior_qual = 1-house_vars$interior_qual
+  
+  
+  house_vars = house_vars %>% select(-c(epared1,epared2,epared3,
+                                        etecho1,etecho2,etecho3,
+                                        eviv1,eviv2,eviv3))
+  
+  house_vars$house_qual = house_vars %>%
+    select(interior_qual, exterior_qual) %>%
+    rowMeans()
+  
+  #put back in full dataset
+  data_hh$interior_qual = house_vars$interior_qual
+  data_hh$exterior_qual = house_vars$exterior_qual
+  data_hh$house_qual = house_vars$house_qual
+  
+  return(data_hh)
+}
+
+data = data_cleaner(read.csv('poverty.csv'))
+test_data = data_cleaner(read.csv('poverty-test-blinded.csv')) #works on test data.
+```
+
+# Model
+
+Classification
+
+* Not sure if the order matters
+
+* Multicategory logit
+
+* Cumulative logit
+
+```{r}
+
+```
+
