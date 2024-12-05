@@ -166,7 +166,11 @@ The data provided for this includes 142 predictor variables where each row is an
 Our goal is to accurately predict where each individual falls in the Target variable.
 
 
-# Data Cleaning
+# Data Cleaning and Exploration
+
+There are several variables, such as SQBescolari, SQBage, SQBhogar_total, SQBedjefe, SQBhogar_nin, SQBovercrowding, SQBdependency, SQBmeaned, agesq, that are either irrelevant in the analysis, or hold little value to the outcome of the analysis. These variables are squares of other existing variables so they are removed from the dataset to avoid any colinearity. Additional data cleaning steps address missing values, standardize data formats, and compute new variables to ensure the dataset is ready for analysis. Missing values are filled with logical defaults or calculated averages. One example of this is replacing v2a1 (rent payment) and v18q1 (tablets owned) with zero, or using the mean education level for specific age groups to impute meaneduc. Categorical variables, like edjefa and edjefe, are converted into binary numeric formats. Dependency ratios are recalculated at the household level using age group distributions, and a binary indicator for school attendance is created.
+
+Once these steps have been executed, new variables are made to address the ambiguity of some of the existing features. Some of these variables create household-level summaries, such as counts of individuals in school, children behind in school, and disabled members, and identifies households with non-family members. A filter is applied to the dataset to include only heads of households and removes redundant or constant features. Housing quality is quantified through composite scores for interior, exterior, and overall quality based on materials and utilities. To visualize household dependencies, a simple scatterplot was created.
 
 ```{r}
 data_cleaner = function(data){
@@ -398,6 +402,29 @@ data_cleaner = function(data){
 data = data_cleaner(read.csv('poverty.csv'))
 test_data = data_cleaner(read.csv('poverty-test-blinded.csv')) #works on test data.
 ```
+
+```{r}
+ggplot(data, aes(x = dependency, y = house_qual)) +
+  geom_point(alpha = 0.6, color = "blue") + 
+  geom_smooth(method = "lm", color = "red", se = TRUE) +
+  labs(
+    title = "Scatterplot of Dependency vs House Quality",
+    x = "Dependency Ratio",
+    y = "House Quality Score"
+  ) +
+  theme_minimal()
+```
+
+As we can see from this plot, as dependency ratio increases, the house quality seems to have a slightly larger spread which could indicate that having more dependents could have an impact on the quality of a household. Additionally, there could be a relationship between the rent paid and the house quality. To view this, another scatterplot was made.
+
+```{r}
+ggplot(aes(x = v2a1, y = house_qual, color = dependency), data = data) +
+  geom_point() +
+  labs(x = "Rent Amount", y = "House Quality", title = "Rent Payment vs House Quality", color = "Dependency Ratio") +
+  theme_minimal()
+```
+
+As we can see in this plot, there seems to be some sort of relationship when rent goes up, the house quality rises with it. There also seems to be a lower dependency ratio as both rent and house quality increase.
 
 # Model
 
