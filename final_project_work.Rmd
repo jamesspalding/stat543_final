@@ -480,3 +480,16 @@ preds = predict(mod0, data_te, type = "class")
 confusionMatrix(as.factor(preds), as.factor(data_te$Target)) #already decent
 ```
 
+```{r}
+library(glmnet)
+#Convert training data to matrix format, required for the package
+xx <- model.matrix(Target~., data_tr)
+yy <- data_tr$Target #packages requires this to be numeric
+
+#Fit the lasso logistic regression
+#alpha=1 gives lasso (alpha=0 gives ridge)
+#Can change the model measurement. Using AUC here:
+lasso.out <- cv.glmnet(xx, yy, family="multinomial", alpha=1, type.measure="class")
+coef(lasso.out, s=lasso.out$lambda.min)
+```
+
