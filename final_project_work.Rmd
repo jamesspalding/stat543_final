@@ -11,6 +11,10 @@ knitr::opts_chunk$set(echo = F, include = F, message = F)
 
 library(tidyverse)
 library(VGAM)
+library(nnet)
+library(pROC)
+library(caret)
+library(glmnet)
 library(gt)
 library(gtExtras)
 
@@ -462,11 +466,6 @@ Classification
 * Cumulative logit
 
 ```{r}
-library(nnet)
-library(pROC)
-library(caret)
-library(glmnet)
-
 #split train/test
 set.seed(543)
 train_ind = sample.int(dim(data)[1], dim(data)[1] * .7)
