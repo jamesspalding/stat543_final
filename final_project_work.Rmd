@@ -626,3 +626,9 @@ confusionMatrix(as.factor(final_preds), as.factor(data_te$Target))
 While the sensitivity for observations in class 4 may have fallen by a decent margin, its specificity rose to compensate. While metrics for class 2 predictions are more or less the same, metrics for class 1 and 3 predictions have seen substantial improvements. 
 
 # Conclusion
+
+```{r}
+#get preds on blinded data
+
+```
+
