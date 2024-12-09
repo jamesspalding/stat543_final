@@ -437,23 +437,23 @@ ggplot(data, aes(x = dependency, y = house_qual)) +
   geom_point(alpha = 0.6, color = "blue") + 
   geom_smooth(method = "lm", color = "red", se = TRUE) +
   labs(
-    title = "Scatterplot of Dependency vs House Quality",
+    title = "Dependency vs House Quality",
     x = "Dependency Ratio",
     y = "House Quality Score"
   ) +
   theme_minimal()
 ```
 
-As we can see from this plot, as dependency ratio increases, the house quality seems to have a slightly larger spread which could indicate that having more dependents could have an impact on the quality of a household. Another argument that could be made is that people that have more dependents appear to be in a position to provide for these dependents since there seems to be an upward trend of the house quality score as the dependency ratio increases. Additionally, there could be a relationship between the rent paid and the house quality. To view this, another scatterplot was made.
+As we can see from this plot, as dependency ratio increases, the house quality seems to have a slightly larger spread which could indicate that having more dependents could have an impact on the quality of a household. Another argument that could be made is that people that have more dependents appear to be in a position to provide for these dependents since there seems to be an upward trend of the house quality score as the dependency ratio increases. Additionally, there could be a relationship between the education level and the house quality. To view this, another scatterplot was made.
 
 ```{r,include=T,fig.dim = c(8, 4)}
-ggplot(aes(x = v2a1, y = house_qual, color = dependency), data = data) +
+ggplot(aes(x = house_qual, y = meaneduc, color = dependency), data = data) +
   geom_point() +
-  labs(x = "Rent Amount", y = "House Quality", title = "Rent Payment vs House Quality", color = "Dependency Ratio") +
+  labs(x = "House Quality", y = "Average Education Level", title = "House Quality vs Average Education Level", color = "Dependency Ratio") +
   theme_minimal()
 ```
 
-As we can see in this plot, there seems to be some sort of relationship when rent goes up, the house quality rises with it. There also seems to be a lower dependency ratio as both rent and house quality increase.
+As we can see in this plot, there seems to be some sort of relationship when average education level goes up, the house quality rises with it. There is also a smaller dependency ratio as both house quality and education level rise.
 
 \newpage
 
