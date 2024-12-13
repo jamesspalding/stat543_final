@@ -480,3 +480,12 @@ preds = predict(mod0, data_te, type = "class")
 confusionMatrix(as.factor(preds), as.factor(data_te$Target)) #already decent
 ```
 
+
+```{r}
+set.seed(1)
+# step(multinom(Target~1, data=data_tr), scope=list(lower=multinom(Target~1, data=data_tr), upper=multinom(Target~., data=data_tr)), direction="forward", trace=0)
+
+backward = step(multinom(Target~., data=data_tr),  direction="backward", trace=0, steps = 20)
+backward
+```
+
