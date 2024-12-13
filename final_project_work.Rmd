@@ -437,33 +437,27 @@ ggplot(data, aes(x = dependency, y = house_qual)) +
   geom_point(alpha = 0.6, color = "blue") + 
   geom_smooth(method = "lm", color = "red", se = TRUE) +
   labs(
-    title = "Scatterplot of Dependency vs House Quality",
+    title = "Dependency vs House Quality",
     x = "Dependency Ratio",
     y = "House Quality Score"
   ) +
   theme_minimal()
 ```
 
-As we can see from this plot, as dependency ratio increases, the house quality seems to have a slightly larger spread which could indicate that having more dependents could have an impact on the quality of a household. Another argument that could be made is that people that have more dependents appear to be in a position to provide for these dependents since there seems to be an upward trend of the house quality score as the dependency ratio increases. Additionally, there could be a relationship between the rent paid and the house quality. To view this, another scatterplot was made.
+As we can see from this plot, as dependency ratio increases, the house quality seems to have a slightly larger spread which could indicate that having more dependents could have an impact on the quality of a household. Another argument that could be made is that people that have more dependents appear to be in a position to provide for these dependents since there seems to be an upward trend of the house quality score as the dependency ratio increases. Additionally, there could be a relationship between the education level and the house quality. To view this, another scatterplot was made.
 
 ```{r,include=T,fig.dim = c(8, 4)}
-ggplot(aes(x = v2a1, y = house_qual, color = dependency), data = data) +
+ggplot(aes(x = house_qual, y = meaneduc, color = dependency), data = data) +
   geom_point() +
-  labs(x = "Rent Amount", y = "House Quality", title = "Rent Payment vs House Quality", color = "Dependency Ratio") +
+  labs(x = "House Quality", y = "Average Education Level", title = "House Quality vs Average Education Level", color = "Dependency Ratio") +
   theme_minimal()
 ```
 
-As we can see in this plot, there seems to be some sort of relationship when rent goes up, the house quality rises with it. There also seems to be a lower dependency ratio as both rent and house quality increase.
+As we can see in this plot, there seems to be some sort of relationship when average education level goes up, the house quality rises with it. There is also a smaller dependency ratio as both house quality and education level rise.
 
-# Model
+\newpage
 
-Classification
-
-* Not sure if the order matters
-
-* Multicategory logit
-
-* Cumulative logit
+# Base Model
 
 ```{r}
 #split train/test
@@ -472,12 +466,196 @@ train_ind = sample.int(dim(data)[1], dim(data)[1] * .7)
 data_tr = data[train_ind,]
 data_te = data[-train_ind,]
 
-#base model (ignore ordering)
+#base model
 mod0 = multinom(Target~., data=data_tr)
 probs = predict(mod0, data_te, type = "probs")
 preds = predict(mod0, data_te, type = "class")
 
 confusionMatrix(as.factor(preds), as.factor(data_te$Target)) #already decent
+print(auc(multiclass.roc(as.numeric(data_te$Target), as.numeric(preds))))
+
+#test various class weights
+#Props: 8%, 16%, 12%, 64%
+
+test_weight = function(class_weights){
+  weighted_probs = sweep(probs, 2, class_weights, `*`)
+  weighted_probs = sweep(weighted_probs, 1, rowSums(weighted_probs), `/`)
+  adjusted_preds = colnames(weighted_probs)[apply(weighted_probs, 1, which.max)]
+  print(confusionMatrix(as.factor(adjusted_preds), as.factor(data_te$Target)))
+  print(auc(multiclass.roc(as.numeric(data_te$Target), as.numeric(adjusted_preds))))
+}
+
+inv_prop = c(Class1 = 1/.08, Class2 = 1/.16, Class3 = 1/.12, Class4 = 1/.64)
+test_weight(inv_prop)
+
+inv_sqrt = c(Class1 = 1/sqrt(.08), Class2 = 1/sqrt(.16), Class3 = 1/sqrt(.12), Class4 = 1/sqrt(.64))
+test_weight(inv_sqrt)
+```
+
+Our first step is to get a baseline model. Since our response is categorical with 4 levels, we will be using a multinomial logistic regression model. We separated  our data with a 70% train/test split and created a model using all variables created and retained in the data cleaning process. The performance of this model is shown below:
+
+| **Base Model**  | 1    | 2    | 3    | 4    |
+|-------------|------|------|------|------|
+| Sensitivity | 0.22 | 0.31 | 0.05 | 0.91 |
+| Specificity | 0.96 | 0.90 | 0.97 | 0.46 |
+
+As shown, the initial model performs quite well in class 4, decent in classes 1 and 2, and terribly in class 3. 
+
+```{r,eval=F}
+library(glmnet)
+#Convert training data to matrix format, required for the package
+xx <- model.matrix(Target~., data_tr)
+yy <- data_tr$Target #packages requires this to be numeric
+
+#Fit the lasso logistic regression
+#alpha=1 gives lasso (alpha=0 gives ridge)
+#Can change the model measurement. Using AUC here:
+
+thresh = seq(from = 0, to = 1, by = 0.05)
+for(t in thresh){
+  lasso.out <- cv.glmnet(xx, yy, family="multinomial", alpha=t, type.measure="class")
+  coef(lasso.out, s=lasso.out$lambda.min)
+  
+  probs = predict(lasso.out, model.matrix(Target~., data_te),type='response')
+  preds = predict(lasso.out, model.matrix(Target~., data_te),type='class')
+  #table(data_te$Target)
+  print(t)
+  print(table(preds))
+}
+
+#all elastic net are not good.
+```
+
+To improve our model, we first attempted elastic net with crossfold validation (10 folds). We initially attempted ridge regression, but noticed that the model was only predicting cases from levels 2 and 4; the two largest groups within the data. We next tried LASSO regression, and had nearly identical results. Finally, in order to rule out elastic net as a viable strategy for our data, we tested every $\alpha$ value between 0 and 1 in intervals of 0.05. Out of these 20 tests, $\alpha=0.3$ was able to make predictions on levels 1, 2, and 4, $\alpha=0.7$ was able to make predictions on all 4 classes, and all others were only able to predict on 2 and 4. However, neither $\alpha=0.3$ nor $\alpha=0.7$ were able to make accurate predictions, so none of the elastic net models will be used.
+
+We hypothesized that, since the predictors appeared to not be a limiting factor, the class imbalance must be the reason for poor predictions. To account for this, we tested a few different weights on each of the class probability predictions. The weights, along with the performance of their corresponding models, are shown below:
+
+| Weight                         | $\kappa$ | AUC  |
+|--------------------------------|----------|------|
+| None                           | 0.26     | 0.65 |
+| $\frac{1}{\text{prop}}$        | 0.27     | .070 |
+| $\frac{1}{\sqrt{\text{prop}}}$ | 0.31     | 0.68 |
+
+As shown, both of these models perform above the unweighted model in both $\kappa$ and ROC-AUC scores. The trade off, however, is that neither of these models are nearly as accurate at predicting class 4 as the unweighted version.
+
+\newpage
+
+# Multi-Model Approach
+
+Since our weighted model did so much better in predicting classes 1-3, we will continue to use it. However, to improve on its lacking capabilities in predicting class 4, we will introduce a second model which *exclusively* predicts class 4.
+
+For this model, the Target variable has been transformed to a binary classifier as to whether the case falls into class 4 or not. In this model, we want as high of an specificity as we can reasonably get, since false positives won't get a second chance at being properly classified by model 2. Since recall (the amount of true positives divided by the total predicted positives) appears to scale linearly with threshold, we took the highest threshold with an acceptable $\kappa$ and AUC score. This value ended up being 0.75. The results are shown in the plot below:
+
+```{r}
+##### Binary class 4 predictor #####
+#get true/false if in group 4
+data_tr_4 = data_tr
+data_tr_4$Target = data_tr$Target == 4
+
+data_te_4 = data_te
+data_te_4$Target = data_te$Target == 4
+
+#fit model
+mod_4 = multinom(Target ~ ., data = data_tr_4)
+probs_4 = predict(mod_4, data_te_4, type = "probs")
+
+#test thresh
+is = seq(from = 0, to = 1, by = 0.05)
+ks = c()
+aucs = c()
+recs = c()
+for(i in is){
+  preds_4 = probs_4 > i
+  
+  conf_mat = confusionMatrix(as.factor(preds_4),as.factor(data_te_4$Target))
+  ks = c(ks, conf_mat$overall['Kappa'])
+  aucs = c(aucs, auc(roc(as.numeric(data_te_4$Target), as.numeric(preds_4))))
+  recs = c(recs, conf_mat$byClass["Recall"])
+}
+
+results = data.frame(cbind(is,ks,aucs,recs))
+results$ratio = results$ks/results$aucs
+
+#use .75
+preds_4 = probs_4 > .75
+confusionMatrix(as.factor(preds_4), as.factor(data_te_4$Target))
+```
+
+```{r, include = T, fig.dim=c(8, 4)}
+results2 = gather(results, key = "var", value = "y", ks:recs)
+
+ggplot(results2, aes(x=is, y=y, colour=var))+
+  geom_line(linewidth = 1.2)+
+  geom_vline(xintercept = .75,linetype='dashed')+
+  labs(x='Threshold', y='Value')+
+  scale_color_discrete(labels = c("AUC", "Kappa", "Recall"))+
+  theme_minimal() +
+  theme(legend.title = element_blank())
+```
+
+Now that we have a threshold selected for the binary model, all we need to do is pass the values that it predicts are not 4 to the original model. The results are shown in the following table:
+
+```{r}
+##### Combine models #####
+final_preds = sapply(1:nrow(data_te), function(i) {
+  # bin 4/not 4
+  is_4_probs = predict(mod_4, newdata = data_te[i, ], type = "probs")
+  is_4 = is_4_probs > .75
+  
+  if (is_4 == T) {
+    return(4)
+  }
+  
+  # predict on rest
+  else {
+    not_4_probs = matrix(predict(mod0, newdata = data_te[i, ], type = 'probs'),nrow = 1)
+    class_weights = c(Class1=1/.08,Class2=1/.16,Class3=1/.12,Class4=1/.64)
+
+    weighted_probs = sweep(not_4_probs, 2, class_weights, `*`)
+    weighted_probs = sweep(weighted_probs, 1, rowSums(weighted_probs), `/`)
+    not_4_pred = which.max(weighted_probs)
+    
+    return(not_4_pred)
+  }
+})
+
+confusionMatrix(as.factor(final_preds), as.factor(data_te$Target))
+```
+
+| **Final Model**  | 1    | 2    | 3    | 4    |
+|-------------|------|------|------|------|
+| Sensitivity | 0.50 | 0.30 | 0.30 | 0.68 |
+| Specificity | 0.88 | 0.87 | 0.84 | 0.80 |
+
+While the sensitivity for observations in class 4 may have fallen by a decent margin, its specificity rose to compensate. While metrics for class 2 predictions are more or less the same, metrics for class 1 and 3 predictions have seen substantial improvements. 
+
+# Conclusion
+
+```{r,eval=F}
+#get preds on blinded data
+blind_preds = sapply(1:nrow(test_data), function(i) {
+  # bin 4/not 4
+  is_4_probs = predict(mod_4, newdata = test_data[i, ], type = "probs")
+  is_4 = is_4_probs > .75
+  
+  if (is_4 == T) {
+    return(4)
+  }
+  
+  # predict on rest
+  else {
+    not_4_probs = matrix(predict(mod0, newdata = test_data[i, ], type = 'probs'),nrow = 1)
+    class_weights = c(Class1=1/.08,Class2=1/.16,Class3=1/.12,Class4=1/.64)
+
+    weighted_probs = sweep(not_4_probs, 2, class_weights, `*`)
+    weighted_probs = sweep(weighted_probs, 1, rowSums(weighted_probs), `/`)
+    not_4_pred = which.max(weighted_probs)
+    
+    return(not_4_pred)
+  }
+})
+
+write.csv(blind_preds, 'predictions.csv')
 ```
 
 
