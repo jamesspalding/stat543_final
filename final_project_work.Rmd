@@ -3,6 +3,8 @@ title: "Predicting Poverty"
 author: "James Spalding, Ben Bronoski, Matt Nowell, Yaya Barrow"
 date: "`r Sys.Date()`"
 output:
+  html_document:
+    df_print: paged
   pdf_document: default
 ---
 
@@ -28,145 +30,48 @@ The data provided includes 142 predictor variables, with a decent spread between
 
 ```{r, include=T}
 #make a nice GT table with a smaller list of vars
-Variable =    c('v2a1',
-                'hacdor',
-                'rooms',
-                'hacapo',
-                'v14a',
-                'refrig',
-                'v18q1', 
-                'r4t1',
-                'r4t2',
-                'escolari',
-                'rez_esc',
-                'hhsize',
-                'pared',
-                'piso',
-                'techo',
-                'cielorazo',
-                'abastagua',
-                'elec',
-                'sanitario',
-                'energcocinar',
-                'elimbasu',
-                'epared',
-                'etecho',
-                'eviv',
-                'dis',
-                'gender',
-                'estadocivil',
-                'parentesco',
-                'hogar_nin',
-                'hogar_adul',
-                'hogar_mayor',
-                'dependency',
-                'edjife',
-                'edjifa',
-                'meaneduc',
-                'instlevel',
-                'bedrooms',
-                'tipovivi',
-                'computer',
-                'television',
-                'lugar',
-                'area',
-                'age',
-                'Target'
-                )
+Variable = c('v2a1','hacdor','rooms','hacapo','v14a','refrig','v18q1','r4t1',
+             'r4t2','escolari','rez_esc','hhsize','pared','piso','techo',
+             'cielorazo','abastagua','elec','sanitario','energcocinar',
+             'elimbasu','epared','etecho','eviv','dis','gender','estadocivil',
+             'parentesco','hogar_nin','hogar_adul','hogar_mayor','dependency',
+             'edjife','edjifa','meaneduc','instlevel','bedrooms','tipovivi',
+             'computer','television','lugar','area','age','Target')
 
 
-Type =        c('Numeric',
-                'Numeric',
-                'Numeric',
-                'Numeric',
-                'Binary',
-                'Binary',
-                'Numeric',
-                'Numeric',
-                'Numeric',
-                'Numeric',
-                'Numeric',
-                'Numeric',
-                'Categorical',
-                'Categorical',
-                'Categorical',
-                'Binary',
-                'Categorical',
-                'Categorical',
-                'Categorical',
-                'Categorical',
-                'Categorical',
-                'Numeric',
-                'Numeric',
-                'Numeric',
-                'Binary',
-                'Binary',
-                'Categorical',
-                'Categorical',
-                'Numeric',
-                'Numeric',
-                'Numeric',
-                'Numeric',
-                'Numeric',
-                'Numeric',
-                'Numeric',
-                'Categorical',
-                'Numeric',
-                'Categorical',
-                'Binary',
-                'Binary',
-                'Categorical',
-                'Binary',
-                'Numeric',
-                'Categorical'
-                )
+Type = c('Numeric','Numeric','Numeric','Numeric','Binary','Binary','Numeric',
+         'Numeric','Numeric','Numeric','Numeric','Numeric','Categorical',
+         'Categorical','Categorical','Binary','Categorical','Categorical',
+         'Categorical','Categorical','Categorical','Numeric','Numeric',
+         'Numeric','Binary','Binary','Categorical','Categorical','Numeric',
+         'Numeric','Numeric','Numeric','Numeric','Numeric','Numeric',
+         'Categorical','Numeric','Categorical','Binary','Binary','Categorical',
+         'Binary','Numeric','Categorical')
 
 
-Description = c('Monthly rent payment',
-                'Overcrowding by bedrooms',
-                'Number of rooms in house',
-                'Overcrowding by all rooms',
-                'Has bathroom in household',
-                'Has refrigerator in household',
+Description = c('Monthly rent payment','Overcrowding by bedrooms',
+                'Number of rooms in house','Overcrowding by all rooms',
+                'Has bathroom in household','Has refrigerator in household',
                 'Number of tablets household owns',
-                'Persons younger than 12 years',
-                'Persons older than 12 years',
-                'Years of schooling',
-                'Years behind in school',
-                'Household size',
-                'Wall material',
-                'Floor material',
-                'Roof material',
-                'Presence of ceiling in home',
-                'Home water source',
-                'Home electricity source',
-                'Home plumbing type',
-                'Home kitchen type',
-                'Home waste disposal type',
-                'Wall quality',
-                'Roof quality',
-                'Floor quality',
-                'Individual is disabled',
-                'Individual gender',
-                'Individual civil status',
-                'Relation to head of household',
-                'Individuals under 19',
-                'Individuals between 19 and 65',
-                'Individuals >65',
+                'Persons younger than 12 years','Persons older than 12 years',
+                'Years of schooling','Years behind in school','Household size',
+                'Wall material','Floor material','Roof material',
+                'Presence of ceiling in home','Home water source',
+                'Home electricity source','Home plumbing type',
+                'Home kitchen type','Home waste disposal type','Wall quality',
+                'Roof quality','Floor quality','Individual is disabled',
+                'Individual gender','Individual civil status',
+                'Relation to head of household','Individuals under 19',
+                'Individuals between 19 and 65','Individuals >65',
                 'Ratio of dependents/independents',
                 'Education of head of household (male)',
                 'Education of head of household (female)',
                 'Mean years of education in household',
-                'Highest form of education achieved',
-                'Number of bedrooms',
+                'Highest form of education achieved','Number of bedrooms',
                 'House status (rent, own, etc)',
-                'Presence of household computer',
-                'Presence of household TV',
-                'Region',
-                'Urban/Rural',
-                'Individual age',
-                'Household poverty level'
-                )
+                'Presence of household computer','Presence of household TV',
+                'Region','Urban/Rural','Individual age',
+                'Household poverty level')
 
 
 as.data.frame(t(as.data.frame(rbind(Variable,Type,Description)))) %>%
@@ -179,10 +84,8 @@ Furthermore, our response variable **Target** has the following categories which
 ```{r, include=T}
 Level = c(1,2,3,4)
 
-Description = c('Extreme poverty',
-                'Moderate poverty',
-                'Vulnerable',
-                'Non-vulnerable')
+Description = c('Extreme poverty','Moderate poverty',
+                'Vulnerable','Non-vulnerable')
 
 #table(data$Target)
 
@@ -193,22 +96,20 @@ as.data.frame(t(as.data.frame(rbind(Level,Description,Count)))) %>%
   gt_theme_nytimes()
 ```
 
-As shown by the counts, this is a very imbalanced dataset and measures will need to be taken to account for this.
+As shown by the counts, the data is rather imbalanced within the levels of vulnerability will be accounted for in future processes.
 
 # Data Cleaning and Exploration
 
-There are several variables, such as SQBescolari, SQBage, SQBhogar_total, SQBedjefe, SQBhogar_nin, SQBovercrowding, SQBdependency, SQBmeaned, agesq, that are either irrelevant in the analysis, or hold little value to the outcome of the analysis. These variables are squares of other existing variables so they are removed from the dataset to avoid any colinearity. Additional data cleaning steps address missing values, standardize data formats, and compute new variables to ensure the dataset is ready for analysis. Missing values are filled with logical defaults or calculated averages. One example of this is replacing v2a1 (rent payment) and v18q1 (tablets owned) with zero, or using the mean education level for specific age groups to impute meaneduc. Categorical variables, like edjefa and edjefe, are converted into binary numeric formats. Dependency ratios are recalculated at the household level using age group distributions, and a binary indicator for school attendance is created.
+There are several variables, such as SQBescolari, SQBage, SQBhogar_total, SQBedjefe, SQBhogar_nin, SQBovercrowding, SQBdependency, SQBmeaned, agesq, that we deemed irrelevant to our analysis. These variables are squares of other existing variables so they were removed from the dataset to avoid colinearity with their non-square counterparts. Additional data cleaning steps address missing values, standardize data formats, and compute new variables to ensure the dataset is ready for analysis. Missing values are filled with logical defaults or calculated averages. One example of this is replacing v2a1 (rent payment) and v18q1 (tablets owned) with zero, or using the mean education level for specific age groups to impute meaneduc. Categorical variables, like edjefa and edjefe, are converted into binary numeric formats. Dependency ratios are recalculated at the household level using age group distributions, and a binary indicator for school attendance is created.
 
-Once these steps have been executed, new variables are made to address the ambiguity of some of the existing features. Some of these variables create household-level summaries, such as counts of individuals in school, children behind in school, and disabled members, and identifies households with non-family members. A filter is applied to the dataset to include only heads of households and removes redundant or constant features. Housing quality is quantified through composite scores for interior, exterior, and overall quality based on materials and utilities. To visualize household dependencies, a simple scatterplot was created.
+Once these steps have been executed, new variables were constructed to address the ambiguity of some of the existing features. Some of these variables create household-level summaries, such as counts of individuals in school, children behind in their schooling, and disabled household members, and identifies households with non-family members. A filter is applied to the dataset to include only heads of households and removes redundant or constant features. Housing quality is quantified through composite scores for interior, exterior, and overall quality based on materials and utilities. To visualize household dependencies, a simple scatterplot was created.
 
 ```{r}
 data_cleaner = function(data){
   #remove redundant variables
   data = data %>% select(-c(SQBescolari, SQBage, SQBhogar_total, SQBedjefe,
-                            SQBhogar_nin, SQBovercrowding, SQBdependency, SQBmeaned,
-                            agesq))
-  
-  
+                            SQBhogar_nin, SQBovercrowding, SQBdependency, 
+                            SQBmeaned,agesq))
   
   ### Fill NAs ###
   #colSums(is.na(data))
@@ -453,20 +354,79 @@ ggplot(aes(x = house_qual, y = meaneduc, color = dependency), data = data) +
   theme_minimal()
 ```
 
-As we can see in this plot, there seems to be some sort of relationship when average education level goes up, the house quality rises with it. There is also a smaller dependency ratio as both house quality and education level rise.
+As we can see in this plot, the house quality appears to have a positive relationship with average education level. There is also a smaller dependency ratio as both house quality and education level rise.
 
 \newpage
 
-# Base Model
 
 ```{r}
 #split train/test
 set.seed(543)
 train_ind = sample.int(dim(data)[1], dim(data)[1] * .7)
-data_tr = data[train_ind,]
-data_te = data[-train_ind,]
+data_tr = data[train_ind,] #70% Training
+data_te = data[-train_ind,] #30% Testing
 
+#Undersampling 4's in training for model construction
+tr_4<-which(data_tr$Target==4)
+tr_3<-which(data_tr$Target==3)
+tr_2<-which(data_tr$Target==2)
+tr_1<-which(data_tr$Target==1)
+
+set.seed(1)
+keeps4 <- sample.int(length(tr_4), 150)
+set.seed(1)
+keeps3 <- sample.int(length(tr_3), 150)
+set.seed(1)
+keeps2 <- sample.int(length(tr_2), 150)
+set.seed(1)
+keeps1 <- sample.int(length(tr_1), 150)
+
+undr<-c(tr_4[keeps4],tr_3[keeps3],tr_2[keeps2],tr_1[keeps1])
+
+tr_undr <-data_tr[undr,]
+```
+
+```{r}
+balmod = multinom(Target~., data=tr_undr)
+
+uprobs = predict(balmod, data_te, type = "probs")
+upreds = predict(balmod, data_te, type = "class")
+
+confusionMatrix(as.factor(upreds), as.factor(data_te$Target)) #already decent
+print(auc(multiclass.roc(as.numeric(data_te$Target), as.numeric(upreds))))
+```
+
+
+```{r}
+# set.seed(1)
+# ustep = step(multinom(Target~1, data=tr_undr),
+#             scope=list(lower=multinom(Target~1, data=tr_undr),
+#                        upper=multinom(Target~., data=tr_undr)),
+#             direction="both", trace=0)
+ustep <- multinom(formula = Target ~ escolari + r4t1 + energcocinar4 + 
+    v18q1 + estadocivil5 + age + school_count + dependency + 
+    hacapo + instlevel4 + estadocivil7 + qmobilephone + v2a1 + 
+    etecho1 + pisomoscer + overcrowding, data = tr_undr)
+ustep
+
+uprobs = predict(ustep, data_te, type = "probs")
+upreds = predict(ustep, data_te, type = "class")
+
+confusionMatrix(as.factor(upreds), as.factor(data_te$Target)) #already decent
+print(auc(multiclass.roc(as.numeric(data_te$Target), as.numeric(upreds))))
+
+anova(balmod,ustep)
+```
+
+
+
+
+
+# Base Model
+
+```{r}
 #base model
+print("#######")
 mod0 = multinom(Target~., data=data_tr)
 probs = predict(mod0, data_te, type = "probs")
 preds = predict(mod0, data_te, type = "class")
@@ -474,10 +434,50 @@ preds = predict(mod0, data_te, type = "class")
 confusionMatrix(as.factor(preds), as.factor(data_te$Target)) #already decent
 print(auc(multiclass.roc(as.numeric(data_te$Target), as.numeric(preds))))
 
+# #Takes a long time to run so after running it we just manually declare the models
+# set.seed(1)
+# backward <- step(multinom(Target~., data=data_tr),  direction="backward",
+#                  trace=0, steps = 20)
+# set.seed(1)
+# forward = step(multinom(Target~1, data=data_tr), 
+#                scope=list(lower=multinom(Target~1, data=data_tr), 
+#                           upper=multinom(Target~., data=data_tr)), 
+#                direction="forward", trace=0)
+# set.seed(1)
+# step = step(multinom(Target~1, data=data_tr), 
+#             scope=list(lower=multinom(Target~1, data=data_tr), 
+#                        upper=multinom(Target~., data=data_tr)), 
+#             direction="both", trace=0)
+
+#Backward model
+print("#######")
+backward <- multinom(Target~.-rooms- v14a- rez_esc- techoentrepiso- techootro- abastaguadentro- abastaguano- public- planpri- coopele- male- instlevel6- instlevel7- instlevel8- instlevel9- bedrooms- computer- television- school_count- non_family, data=data_tr)
+
+anova(backward,mod0)[2,7]
+
+bprobs = predict(backward, data_te, type = "probs")
+bpreds = predict(backward, data_te, type = "class")
+
+confusionMatrix(as.factor(bpreds), as.factor(data_te$Target)) #already decent
+print(auc(multiclass.roc(as.numeric(data_te$Target), as.numeric(bpreds))))
+
+
+#Forward/Stepwise Model
+print("#######")
+forward <- multinom(Target~meaneduc + hogar_nin + qmobilephone + house_qual + v2a1 + age + v18q1 + estadocivil5 + instlevel3 + area1 + paredblolad + epared1 + sanitario3 + estadocivil4 + techoentrepiso + hogar_adul + energcocinar2 + etecho1 + dis_count + children_behind + escolari + estadocivil2, data=data_tr)
+
+anova(forward,mod0)[2,7]
+
+fprobs = predict(forward, data_te, type = "probs")
+fpreds = predict(forward, data_te, type = "class")
+
+confusionMatrix(as.factor(fpreds), as.factor(data_te$Target)) #already decent
+print(auc(multiclass.roc(as.numeric(data_te$Target), as.numeric(fpreds))))
+
 #test various class weights
 #Props: 8%, 16%, 12%, 64%
 
-test_weight = function(class_weights){
+test_weight = function(probs,class_weights){
   weighted_probs = sweep(probs, 2, class_weights, `*`)
   weighted_probs = sweep(weighted_probs, 1, rowSums(weighted_probs), `/`)
   adjusted_preds = colnames(weighted_probs)[apply(weighted_probs, 1, which.max)]
@@ -485,11 +485,13 @@ test_weight = function(class_weights){
   print(auc(multiclass.roc(as.numeric(data_te$Target), as.numeric(adjusted_preds))))
 }
 
+print("#######")
 inv_prop = c(Class1 = 1/.08, Class2 = 1/.16, Class3 = 1/.12, Class4 = 1/.64)
-test_weight(inv_prop)
+test_weight(probs,inv_prop)
 
+print("#######")
 inv_sqrt = c(Class1 = 1/sqrt(.08), Class2 = 1/sqrt(.16), Class3 = 1/sqrt(.12), Class4 = 1/sqrt(.64))
-test_weight(inv_sqrt)
+test_weight(probs,inv_sqrt)
 ```
 
 Our first step is to get a baseline model. Since our response is categorical with 4 levels, we will be using a multinomial logistic regression model. We separated  our data with a 70% train/test split and created a model using all variables created and retained in the data cleaning process. The performance of this model is shown below:
@@ -499,7 +501,7 @@ Our first step is to get a baseline model. Since our response is categorical wit
 | Sensitivity | 0.22 | 0.31 | 0.05 | 0.91 |
 | Specificity | 0.96 | 0.90 | 0.97 | 0.46 |
 
-As shown, the initial model performs quite well in class 4, decent in classes 1 and 2, and terribly in class 3. 
+The initial model correctly classifies true non-vulnerable households quite well as shown by the high sensitivity in class 4. However because of the low specificity in class 4 there is potential that the model is overclassifying households into the non-vulnerable category. In the other classes the model correctly identifies true negatives very often as shown by the high specificities in classes 1, 2, and 3. The low sensitivity values in classes 1, 2, and 3 as well as the low specificity value in class 4 suggests that the model is overclassifying households as non-vulnerable to poverty.
 
 ```{r,eval=F}
 library(glmnet)
@@ -526,7 +528,8 @@ for(t in thresh){
 #all elastic net are not good.
 ```
 
-To improve our model, we first attempted elastic net with crossfold validation (10 folds). We initially attempted ridge regression, but noticed that the model was only predicting cases from levels 2 and 4; the two largest groups within the data. We next tried LASSO regression, and had nearly identical results. Finally, in order to rule out elastic net as a viable strategy for our data, we tested every $\alpha$ value between 0 and 1 in intervals of 0.05. Out of these 20 tests, $\alpha=0.3$ was able to make predictions on levels 1, 2, and 4, $\alpha=0.7$ was able to make predictions on all 4 classes, and all others were only able to predict on 2 and 4. However, neither $\alpha=0.3$ nor $\alpha=0.7$ were able to make accurate predictions, so none of the elastic net models will be used.
+To improve our model, we first attempted elastic net with crossfold validation (10 folds). We initially attempted ridge regression, but noticed that the model was only predicting cases from levels 2 and 4; the two largest groups within the data. We next tried LASSO regression, and had nearly identical results. Finally, in order to rule out elastic net as a viable strategy for our data, we tested every $\alpha$ value between 0 and 1 in intervals of 0.05. Out of these 20 tests, $\alpha=0.3$ was able to make predictions on levels 1, 2, and 4, $\alpha=0.7$ was able to make predictions on all 4 classes, and all others were only able to predict on 2 and 4. However, neither $\alpha=0.3$ nor $\alpha=0.7$ were able to make accurate predictions, so none of the elastic net models will be used. We also attempted Forward, Backward, and Stepwise selection. Backward selection dropped the variables rooms, v14a, rez_esc, techoentrepiso, techootro, abastaguadentro, abastaguano, public, planpri, coopele, male, instlevel6, instlevel7, instlevel8, instlevel9, bedrooms, computer, television, school_count, and non_family. Even with these missing variables it performed similarly to the full model. Forward selection only kept the variables meaneduc, hogar_nin, qmobilephone, house_qual, v2a1, age, v18q1, estadocivil5, instlevel3, area1, paredblolad, epared1, sanitario3, estadocivil4, techoentrepiso, hogar_adul, energcocinar2, etecho1, dis_count, children_behind, escolari, and estadocivil2. Even with significantly less variables it performed similarly to the full model. Stepwise selection yeilded the same model as forward selection. These three models performed similarly to the full model however the full model did result in all four vulnerability classifications having more balanced sensitivity values. Because of this we ruled these models out for now as we explored other options.
+
 
 We hypothesized that, since the predictors appeared to not be a limiting factor, the class imbalance must be the reason for poor predictions. To account for this, we tested a few different weights on each of the class probability predictions. The weights, along with the performance of their corresponding models, are shown below:
 
@@ -536,7 +539,20 @@ We hypothesized that, since the predictors appeared to not be a limiting factor,
 | $\frac{1}{\text{prop}}$        | 0.27     | .070 |
 | $\frac{1}{\sqrt{\text{prop}}}$ | 0.31     | 0.68 |
 
-As shown, both of these models perform above the unweighted model in both $\kappa$ and ROC-AUC scores. The trade off, however, is that neither of these models are nearly as accurate at predicting class 4 as the unweighted version.
+As shown, both of these models have a larger $\kappa$ value and ROC-AUC scores which suggest they perform better then the unweighted model. The trade off, however, is that neither of these new models are nearly as accurate at predicting class 4 as the unweighted version as shown below.
+
+| **Inverse Proportion Model**  | 1    | 2    | 3    | 4    |
+|-------------|------|------|------|------|
+| Sensitivity | 0.50 | 0.30 | 0.32 | 0.66 |
+| Specificity | 0.88 | 0.87 | 0.82 | 0.83 |
+
+
+| **Inverse Square Root Proportion Model**  | 1    | 2    | 3    | 4    |
+|-------------|------|------|------|------|
+| Sensitivity | 0.37 | 0.35 | 0.16 | 0.83 |
+| Specificity | 0.93 | 0.88 | 0.92 | 0.65 |
+
+
 
 \newpage
 
@@ -544,7 +560,7 @@ As shown, both of these models perform above the unweighted model in both $\kapp
 
 Since our weighted model did so much better in predicting classes 1-3, we will continue to use it. However, to improve on its lacking capabilities in predicting class 4, we will introduce a second model which *exclusively* predicts class 4.
 
-For this model, the Target variable has been transformed to a binary classifier as to whether the case falls into class 4 or not. In this model, we want as high of an specificity as we can reasonably get, since false positives won't get a second chance at being properly classified by model 2. Since recall (the amount of true positives divided by the total predicted positives) appears to scale linearly with threshold, we took the highest threshold with an acceptable $\kappa$ and AUC score. This value ended up being 0.75. The results are shown in the plot below:
+For this model, the Target variable has been transformed to a binary classifier as to whether the case falls into class 4 or not. In this model, we want as high of an specificity as we can reasonably get, since false positives won't be classified again by model 2. Since recall (the amount of true positives divided by the total predicted positives) appears to scale linearly with threshold, we took the highest threshold with an acceptable $\kappa$ and AUC score. This value ended up being 0.75. The results are shown in the plot below:
 
 ```{r}
 ##### Binary class 4 predictor #####
@@ -587,7 +603,7 @@ results2 = gather(results, key = "var", value = "y", ks:recs)
 ggplot(results2, aes(x=is, y=y, colour=var))+
   geom_line(linewidth = 1.2)+
   geom_vline(xintercept = .75,linetype='dashed')+
-  labs(x='Threshold', y='Value')+
+  labs(x='Threshold', y='Value', title = 'Metrics for classifying non-vulnerable households by threshold')+
   scale_color_discrete(labels = c("AUC", "Kappa", "Recall"))+
   theme_minimal() +
   theme(legend.title = element_blank())
@@ -597,7 +613,8 @@ Now that we have a threshold selected for the binary model, all we need to do is
 
 ```{r}
 ##### Combine models #####
-final_preds = sapply(1:nrow(data_te), function(i) {
+final_preds = sapply(1:nrow(data_te), 
+                     function(i) {
   # bin 4/not 4
   is_4_probs = predict(mod_4, newdata = data_te[i, ], type = "probs")
   is_4 = is_4_probs > .75
@@ -627,7 +644,7 @@ confusionMatrix(as.factor(final_preds), as.factor(data_te$Target))
 | Sensitivity | 0.50 | 0.30 | 0.30 | 0.68 |
 | Specificity | 0.88 | 0.87 | 0.84 | 0.80 |
 
-While the sensitivity for observations in class 4 may have fallen by a decent margin, its specificity rose to compensate. While metrics for class 2 predictions are more or less the same, metrics for class 1 and 3 predictions have seen substantial improvements. 
+While the sensitivity for observations in class 4 may have fallen by a decent margin, its specificity rose to compensate. While metrics for class 2 predictions are more or less the same, metrics for class 1 and 3 predictions have seen substantial improvements. This model shows a greater emphasis on correctly identifying those vulnerable to poverty. This contrasts against our initial model which over emphasized the correct identification of those not vulnerable to poverty. We believe the new model will suggest a better allocation of resources to those vulnerable to poverty than the intial model would have suggested.
 
 # Conclusion
 
@@ -658,12 +675,4 @@ blind_preds = sapply(1:nrow(test_data), function(i) {
 write.csv(blind_preds, 'predictions.csv')
 ```
 
-
-```{r}
-set.seed(1)
-# step(multinom(Target~1, data=data_tr), scope=list(lower=multinom(Target~1, data=data_tr), upper=multinom(Target~., data=data_tr)), direction="forward", trace=0)
-
-backward = step(multinom(Target~., data=data_tr),  direction="backward", trace=0, steps = 20)
-backward
-```
 
