@@ -358,6 +358,7 @@ As we can see in this plot, the house quality appears to have a positive relatio
 
 \newpage
 
+# The Statistical Model
 
 ```{r}
 #split train/test
@@ -383,115 +384,27 @@ keeps1 <- sample.int(length(tr_1), 150)
 
 undr<-c(tr_4[keeps4],tr_3[keeps3],tr_2[keeps2],tr_1[keeps1])
 
-tr_undr <-data_tr[undr,]
-```
+data_tr_bal <-data_tr[undr,]
 
-```{r}
-balmod = multinom(Target~., data=tr_undr)
+model.test <- function(tr_model,test_data){
+  probs = predict(tr_model, test_data, type = "probs")
+  preds = predict(tr_model, test_data, type = "class")
 
-uprobs = predict(balmod, data_te, type = "probs")
-upreds = predict(balmod, data_te, type = "class")
-
-confusionMatrix(as.factor(upreds), as.factor(data_te$Target)) #already decent
-print(auc(multiclass.roc(as.numeric(data_te$Target), as.numeric(upreds))))
-```
-
-
-```{r}
-# set.seed(1)
-# ustep = step(multinom(Target~1, data=tr_undr),
-#             scope=list(lower=multinom(Target~1, data=tr_undr),
-#                        upper=multinom(Target~., data=tr_undr)),
-#             direction="both", trace=0)
-ustep <- multinom(formula = Target ~ escolari + r4t1 + energcocinar4 + 
-    v18q1 + estadocivil5 + age + school_count + dependency + 
-    hacapo + instlevel4 + estadocivil7 + qmobilephone + v2a1 + 
-    etecho1 + pisomoscer + overcrowding, data = tr_undr)
-ustep
-
-uprobs = predict(ustep, data_te, type = "probs")
-upreds = predict(ustep, data_te, type = "class")
-
-confusionMatrix(as.factor(upreds), as.factor(data_te$Target)) #already decent
-print(auc(multiclass.roc(as.numeric(data_te$Target), as.numeric(upreds))))
-
-anova(balmod,ustep)
+  print(confusionMatrix(as.factor(preds), as.factor(test_data$Target))) #already decent
+  print(auc(multiclass.roc(as.numeric(test_data$Target), as.numeric(preds))))
+}
 ```
 
 
-
-
-
-# Base Model
+## Base Model
 
 ```{r}
 #base model
-print("#######")
 mod0 = multinom(Target~., data=data_tr)
 probs = predict(mod0, data_te, type = "probs")
 preds = predict(mod0, data_te, type = "class")
 
-confusionMatrix(as.factor(preds), as.factor(data_te$Target)) #already decent
-print(auc(multiclass.roc(as.numeric(data_te$Target), as.numeric(preds))))
-
-# #Takes a long time to run so after running it we just manually declare the models
-# set.seed(1)
-# backward <- step(multinom(Target~., data=data_tr),  direction="backward",
-#                  trace=0, steps = 20)
-# set.seed(1)
-# forward = step(multinom(Target~1, data=data_tr), 
-#                scope=list(lower=multinom(Target~1, data=data_tr), 
-#                           upper=multinom(Target~., data=data_tr)), 
-#                direction="forward", trace=0)
-# set.seed(1)
-# step = step(multinom(Target~1, data=data_tr), 
-#             scope=list(lower=multinom(Target~1, data=data_tr), 
-#                        upper=multinom(Target~., data=data_tr)), 
-#             direction="both", trace=0)
-
-#Backward model
-print("#######")
-backward <- multinom(Target~.-rooms- v14a- rez_esc- techoentrepiso- techootro- abastaguadentro- abastaguano- public- planpri- coopele- male- instlevel6- instlevel7- instlevel8- instlevel9- bedrooms- computer- television- school_count- non_family, data=data_tr)
-
-anova(backward,mod0)[2,7]
-
-bprobs = predict(backward, data_te, type = "probs")
-bpreds = predict(backward, data_te, type = "class")
-
-confusionMatrix(as.factor(bpreds), as.factor(data_te$Target)) #already decent
-print(auc(multiclass.roc(as.numeric(data_te$Target), as.numeric(bpreds))))
-
-
-#Forward/Stepwise Model
-print("#######")
-forward <- multinom(Target~meaneduc + hogar_nin + qmobilephone + house_qual + v2a1 + age + v18q1 + estadocivil5 + instlevel3 + area1 + paredblolad + epared1 + sanitario3 + estadocivil4 + techoentrepiso + hogar_adul + energcocinar2 + etecho1 + dis_count + children_behind + escolari + estadocivil2, data=data_tr)
-
-anova(forward,mod0)[2,7]
-
-fprobs = predict(forward, data_te, type = "probs")
-fpreds = predict(forward, data_te, type = "class")
-
-confusionMatrix(as.factor(fpreds), as.factor(data_te$Target)) #already decent
-print(auc(multiclass.roc(as.numeric(data_te$Target), as.numeric(fpreds))))
-
-#test various class weights
-#Props: 8%, 16%, 12%, 64%
-
-test_weight = function(probs,class_weights){
-  weighted_probs = sweep(probs, 2, class_weights, `*`)
-  weighted_probs = sweep(weighted_probs, 1, rowSums(weighted_probs), `/`)
-  adjusted_preds = colnames(weighted_probs)[apply(weighted_probs, 1, which.max)]
-  print(confusionMatrix(as.factor(adjusted_preds), as.factor(data_te$Target)))
-  print(auc(multiclass.roc(as.numeric(data_te$Target), as.numeric(adjusted_preds))))
-}
-
-print("#######")
-inv_prop = c(Class1 = 1/.08, Class2 = 1/.16, Class3 = 1/.12, Class4 = 1/.64)
-test_weight(probs,inv_prop)
-
-print("#######")
-inv_sqrt = c(Class1 = 1/sqrt(.08), Class2 = 1/sqrt(.16), Class3 = 1/sqrt(.12), Class4 = 1/sqrt(.64))
-test_weight(probs,inv_sqrt)
+model.test(mod0,data_te)
 ```
 
 Our first step is to get a baseline model. Since our response is categorical with 4 levels, we will be using a multinomial logistic regression model. We separated  our data with a 70% train/test split and created a model using all variables created and retained in the data cleaning process. The performance of this model is shown below:
@@ -502,6 +415,59 @@ Our first step is to get a baseline model. Since our response is categorical wit
 | Specificity | 0.96 | 0.90 | 0.97 | 0.46 |
 
 The initial model correctly classifies true non-vulnerable households quite well as shown by the high sensitivity in class 4. However because of the low specificity in class 4 there is potential that the model is overclassifying households into the non-vulnerable category. In the other classes the model correctly identifies true negatives very often as shown by the high specificities in classes 1, 2, and 3. The low sensitivity values in classes 1, 2, and 3 as well as the low specificity value in class 4 suggests that the model is overclassifying households as non-vulnerable to poverty.
+
+```{r}
+# #Takes a long time to run so after running it we just manually declare the models
+# backward <- step(multinom(Target~., data=data_tr),  direction="backward",
+#                  trace=0, steps = 20)
+
+#Backward model
+backward <- multinom(Target~.-rooms- v14a- rez_esc- techoentrepiso- techootro- 
+                       abastaguadentro- abastaguano- public- planpri- coopele- 
+                       male- instlevel6- instlevel7- instlevel8- instlevel9- 
+                       bedrooms- computer- television- school_count- non_family,
+                     data=data_tr)
+
+anova(backward,mod0)[2,7]
+
+model.test(backward,data_te)
+```
+
+```{r}
+# #Takes a long time to run so after running it we just manually declare the models
+# forward = step(multinom(Target~1, data=data_tr), 
+#                scope=list(lower=multinom(Target~1, data=data_tr), 
+#                           upper=multinom(Target~., data=data_tr)), 
+#                direction="forward", trace=0)
+# step = step(multinom(Target~1, data=data_tr), 
+#             scope=list(lower=multinom(Target~1, data=data_tr), 
+#                        upper=multinom(Target~., data=data_tr)), 
+#             direction="both", trace=0)
+
+#Forward/Stepwise Model
+forward <- multinom(Target~meaneduc + hogar_nin + qmobilephone + house_qual + 
+                      v2a1 + age + v18q1 + estadocivil5 + instlevel3 + area1 + 
+                      paredblolad + epared1 + sanitario3 + estadocivil4 + 
+                      techoentrepiso + hogar_adul + energcocinar2 + etecho1 + 
+                      dis_count + children_behind + escolari + estadocivil2, 
+                    data=data_tr)
+
+anova(forward,mod0)[2,7]
+
+model.test(forward,data_te)
+```
+
+To improve our model, we first attempted forward, backward, and step-wise model selection to see if simply removing some of the predictors would improve our model. While each of these techniques performed similarly to the full model they also had the same issues of low sensitivity as the full model. 
+
+| **Backward Model**  | 1    | 2    | 3    | 4    |
+|-------------|------|------|------|------|
+| Sensitivity | 0.22 | 0.33 | 0.06 | 0.91 |
+| Specificity | 0.97 | 0.91 | 0.97 | 0.44 |
+
+| **Forward/Step-wise Model**  | 1    | 2    | 3    | 4    |
+|-------------|------|------|------|------|
+| Sensitivity | 0.17 | 0.36 | 0.00 | 0.94 |
+| Specificity | 0.97 | 0.90 | 0.99 | 0.40 |
 
 ```{r,eval=F}
 library(glmnet)
@@ -528,10 +494,109 @@ for(t in thresh){
 #all elastic net are not good.
 ```
 
-To improve our model, we first attempted elastic net with crossfold validation (10 folds). We initially attempted ridge regression, but noticed that the model was only predicting cases from levels 2 and 4; the two largest groups within the data. We next tried LASSO regression, and had nearly identical results. Finally, in order to rule out elastic net as a viable strategy for our data, we tested every $\alpha$ value between 0 and 1 in intervals of 0.05. Out of these 20 tests, $\alpha=0.3$ was able to make predictions on levels 1, 2, and 4, $\alpha=0.7$ was able to make predictions on all 4 classes, and all others were only able to predict on 2 and 4. However, neither $\alpha=0.3$ nor $\alpha=0.7$ were able to make accurate predictions, so none of the elastic net models will be used. We also attempted Forward, Backward, and Stepwise selection. Backward selection dropped the variables rooms, v14a, rez_esc, techoentrepiso, techootro, abastaguadentro, abastaguano, public, planpri, coopele, male, instlevel6, instlevel7, instlevel8, instlevel9, bedrooms, computer, television, school_count, and non_family. Even with these missing variables it performed similarly to the full model. Forward selection only kept the variables meaneduc, hogar_nin, qmobilephone, house_qual, v2a1, age, v18q1, estadocivil5, instlevel3, area1, paredblolad, epared1, sanitario3, estadocivil4, techoentrepiso, hogar_adul, energcocinar2, etecho1, dis_count, children_behind, escolari, and estadocivil2. Even with significantly less variables it performed similarly to the full model. Stepwise selection yeilded the same model as forward selection. These three models performed similarly to the full model however the full model did result in all four vulnerability classifications having more balanced sensitivity values. Because of this we ruled these models out for now as we explored other options.
+Next, elastic net with crossfold validation (10 folds) was employed. We initially attempted ridge regression, but noticed that the model was only predicting cases from levels 2 and 4; the two largest groups within the data. So, next we tried LASSO regression, and had nearly identical results. Finally, in order to rule out elastic net as a viable strategy for our data, we tested every $\alpha$ value between 0 and 1 in intervals of 0.05. Out of all 20 tests, $\alpha=0.3$ was able to make predictions on levels 1, 2, and 4, $\alpha=0.7$ was able to make predictions on all 4 classes, and all others were only able to predict on 2 and 4. However, neither $\alpha=0.3$ nor $\alpha=0.7$ were able to make accurate predictions, so none of the elastic net models will be used.
 
+```{r}
+#Balanced model
+balmod = multinom(Target~., data=data_tr_bal)
+model.test(balmod,data_te)
+```
 
-We hypothesized that, since the predictors appeared to not be a limiting factor, the class imbalance must be the reason for poor predictions. To account for this, we tested a few different weights on each of the class probability predictions. The weights, along with the performance of their corresponding models, are shown below:
+```{r}
+# #Takes a long time to run so after running it we just manually declare the models
+# balbackward <- step(multinom(Target~., data=data_tr_bal),  direction="backward",
+#                  trace=0)
+
+balbackward <- multinom(Target~v2a1 + hacapo + refrig + v18q1 + hhsize + 
+                          paredblolad + paredzocalo + paredpreb + pareddes + 
+                          paredmad + paredzinc + paredfibras + paredother + 
+                          pisomoscer + pisocemento + pisoother + pisonatur + 
+                          pisonotiene + pisomadera + techozinc + 
+                          techoentrepiso + techocane + techootro + cielorazo + 
+                          noelec + sanitario1 + sanitario2 + sanitario3 + 
+                          sanitario5 + sanitario6 + energcocinar1 + 
+                          energcocinar2 + energcocinar3 + energcocinar4 + 
+                          elimbasu1 + elimbasu2 + elimbasu3 + elimbasu4 + 
+                          elimbasu6 + epared1 + epared2 + epared3 + etecho1 + 
+                          etecho2 + etecho3 + eviv1 + eviv2 + eviv3 + 
+                          estadocivil2 + estadocivil3 + estadocivil4 + 
+                          estadocivil5 + estadocivil6 + estadocivil7 + 
+                          hogar_nin + hogar_adul + hogar_mayor + hogar_total + 
+                          meaneduc + instlevel1 + instlevel2 + instlevel3 + 
+                          instlevel4 + instlevel5 + instlevel6 + instlevel7 + 
+                          instlevel8 + instlevel9 + bedrooms + overcrowding + 
+                          tipovivi1 + tipovivi2 + tipovivi3 + tipovivi4 + 
+                          tipovivi5 + qmobilephone + lugar1 + lugar2 + lugar3 + 
+                          lugar4 + lugar5 + lugar6 + age + dependency + 
+                          dis_count + interior_qual + exterior_qual + 
+                          house_qual, data=data_tr_bal)
+
+model.test(balbackward,data_te)
+
+anova(balbackward,balmod)
+```
+
+```{r}
+# #Takes a long time to run so after running it we just manually declare the models
+# balforward = step(multinom(Target~1, data=data_tr_bal),
+#             scope=list(lower=multinom(Target~1, data=data_tr_bal),
+#                        upper=multinom(Target~., data=data_tr_bal)),
+#             direction="forward", trace=0)
+balforward <- multinom(Target~meaneduc + hogar_nin + house_qual + dis_count + 
+                         v18q1 + qmobilephone + age +instlevel3 + dependency + 
+                         v2a1 + energcocinar2 + estadocivil5 + estadocivil7 + 
+                         overcrowding + hacdor + hhsize + etecho3 + sanitario5 + 
+                         abastaguano + pisonotiene, data = data_tr_bal)
+model.test(balforward,data_te)
+
+anova(balforward,balmod)
+```
+
+```{r}
+# #Takes a long time to run so after running it we just manually declare the models
+# balstep = step(multinom(Target~1, data=data_tr_bal),
+#             scope=list(lower=multinom(Target~1, data=data_tr_bal),
+#                        upper=multinom(Target~., data=data_tr_bal)),
+#             direction="both", trace=0)
+
+balstep <- multinom(formula = Target ~ meaneduc + hogar_nin + dis_count + 
+                      v18q1 + age + instlevel3 + dependency + v2a1 + 
+                      energcocinar2 + estadocivil5 + estadocivil7 + 
+                      overcrowding + hacdor + hhsize + etecho3 + energcocinar3, 
+                    data = data_tr_bal)
+
+model.test(balstep,data_te)
+
+anova(balstep,balmod)
+```
+
+We hypothesized that, since the predictors appeared to not be a limiting factor, the class imbalance must be the reason for poor predictions. To address this issue we employed two difference strategies. The first being randomized under-sampling of the training data. This strategy was performed by randomly selecting 150 values from each of the 4 classes and training our model on only these values. All previously mentioned procedures were conducted on the balanced model as well. The balanced model and it's various derivatives resulted in better balance of our sensitivity values but they were still relatively low as shown in the balanced full model below:
+
+| **Balanced Model**  | 1    | 2    | 3    | 4    |
+|-------------|------|------|------|------|
+| Sensitivity | 0.48 | 0.31 | 0.30 | 0.68 |
+| Specificity | 0.85 | 0.85 | 0.83 | 0.83 |
+
+```{r}
+#test various class weights
+#Props: 8%, 16%, 12%, 64%
+
+test_weight = function(probs,class_weights){
+  weighted_probs = sweep(probs, 2, class_weights, `*`)
+  weighted_probs = sweep(weighted_probs, 1, rowSums(weighted_probs), `/`)
+  adjusted_preds = colnames(weighted_probs)[apply(weighted_probs, 1, which.max)]
+  print(confusionMatrix(as.factor(adjusted_preds), as.factor(data_te$Target)))
+  print(auc(multiclass.roc(as.numeric(data_te$Target), as.numeric(adjusted_preds))))
+}
+
+inv_prop = c(Class1 = 1/.08, Class2 = 1/.16, Class3 = 1/.12, Class4 = 1/.64)
+test_weight(probs,inv_prop)
+
+inv_sqrt = c(Class1 = 1/sqrt(.08), Class2 = 1/sqrt(.16), Class3 = 1/sqrt(.12), Class4 = 1/sqrt(.64))
+test_weight(probs,inv_sqrt)
+```
+
+The second strategy was testing a few different weights on each of the class probability predictions. The weights, along with the performance of their corresponding models, are shown below:
 
 | Weight                         | $\kappa$ | AUC  |
 |--------------------------------|----------|------|
@@ -552,15 +617,13 @@ As shown, both of these models have a larger $\kappa$ value and ROC-AUC scores w
 | Sensitivity | 0.37 | 0.35 | 0.16 | 0.83 |
 | Specificity | 0.93 | 0.88 | 0.92 | 0.65 |
 
-
-
 \newpage
 
-# Multi-Model Approach
+## Multi-Model Approach
 
 Since our weighted model did so much better in predicting classes 1-3, we will continue to use it. However, to improve on its lacking capabilities in predicting class 4, we will introduce a second model which *exclusively* predicts class 4.
 
-For this model, the Target variable has been transformed to a binary classifier as to whether the case falls into class 4 or not. In this model, we want as high of an specificity as we can reasonably get, since false positives won't be classified again by model 2. Since recall (the amount of true positives divided by the total predicted positives) appears to scale linearly with threshold, we took the highest threshold with an acceptable $\kappa$ and AUC score. This value ended up being 0.75. The results are shown in the plot below:
+For this model, the Target variable has been transformed to a binary classifier as to whether the case falls into class 4 or not. In this model, we want as high of an specificity as we can reasonably get, since false positives won't be classified again by model 2. Since recall (the amount of true positives divided by the total predicted positives) appears to scale linearly with threshold, we took the highest threshold with an acceptable $\kappa$ and AUC score. We chose 0.75 for it's combination of high values in all three metrics. The results are shown in the plot below:
 
 ```{r}
 ##### Binary class 4 predictor #####
@@ -644,9 +707,31 @@ confusionMatrix(as.factor(final_preds), as.factor(data_te$Target))
 | Sensitivity | 0.50 | 0.30 | 0.30 | 0.68 |
 | Specificity | 0.88 | 0.87 | 0.84 | 0.80 |
 
-While the sensitivity for observations in class 4 may have fallen by a decent margin, its specificity rose to compensate. While metrics for class 2 predictions are more or less the same, metrics for class 1 and 3 predictions have seen substantial improvements. This model shows a greater emphasis on correctly identifying those vulnerable to poverty. This contrasts against our initial model which over emphasized the correct identification of those not vulnerable to poverty. We believe the new model will suggest a better allocation of resources to those vulnerable to poverty than the intial model would have suggested.
+While the sensitivity for observations in class 4 may have fallen by a decent margin, its specificity rose to compensate. While metrics for class 2 predictions are more or less the same, metrics for class 1 and 3 predictions have seen substantial improvements. This model shows a greater emphasis on correctly identifying those vulnerable to poverty. This contrasts against our initial model which over emphasized correctly identifying those not vulnerable to poverty over identification of other classifications. We believe the new model will suggest a better allocation of resources across all poverty vulnerability classes than the initial model would have suggested.
 
-# Conclusion
+# Results Summary
+
+Many social programs have a hard time making sure the right people are given enough aid. It’s especially
+tricky when a program focuses on the poorest segment of the population. The world’s poorest typically can’t
+provide the necessary income and expense records to prove that they qualify. Instead, your team will consider
+a family’s observable household attributes like the material of their walls and ceiling, or the assets found in the home, to classify poverty levels.
+
+ You’ll be graded on two primary elements. The first element is having correct technical content and thorough
+ analysis that addresses the question prompts. You must have working R code and a knittable .Rmd file. The
+ second element is having an appropriate and well-written narrative throughout the report. Your narrative
+ should explain what you are doing and why you are doing it. Your narrative should respond to the question
+ prompts at each state below. The narrative should be written so that someone with a similar statistical
+ background, but no knowledge of this particular project, could read along and reconstruct your analysis. You
+ should choose graphs and tables that support your conclusions. Grammar, spelling, and clarity count for the
+ narrative.
+
+ Introduction
+ • Data Exploration
+ • The Statistical Model (including model selection)
+ • Results Summary
+
+
+
 
 ```{r,eval=F}
 #get preds on blinded data
