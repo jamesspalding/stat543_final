@@ -711,26 +711,7 @@ While the sensitivity for observations in class 4 may have fallen by a decent ma
 
 # Results Summary
 
-Many social programs have a hard time making sure the right people are given enough aid. It’s especially
-tricky when a program focuses on the poorest segment of the population. The world’s poorest typically can’t
-provide the necessary income and expense records to prove that they qualify. Instead, your team will consider
-a family’s observable household attributes like the material of their walls and ceiling, or the assets found in the home, to classify poverty levels.
-
- You’ll be graded on two primary elements. The first element is having correct technical content and thorough
- analysis that addresses the question prompts. You must have working R code and a knittable .Rmd file. The
- second element is having an appropriate and well-written narrative throughout the report. Your narrative
- should explain what you are doing and why you are doing it. Your narrative should respond to the question
- prompts at each state below. The narrative should be written so that someone with a similar statistical
- background, but no knowledge of this particular project, could read along and reconstruct your analysis. You
- should choose graphs and tables that support your conclusions. Grammar, spelling, and clarity count for the
- narrative.
-
- Introduction
- • Data Exploration
- • The Statistical Model (including model selection)
- • Results Summary
-
-
+In the context of this data and the problem we are trying to address we believe the true positive rate should be optimized. A greater true positive rate will help to correctly distribute resources to vulnerable populations as those in worse tiers of poverty may need additional supports than those who are less vulnerable. Overall we have determined the imbalance in our data makes it hard for the models to classify true positive cases. This can be seen in the extremely low sensitivity and overall classification into classes 1 and 3 which are less prevalent in the data. We tried two techniques to optimize the true positive rate including probability weights and under-sampling to balance the data. Both techniques lead to higher sensitivity values for classes 1 and 3 as we intended. Ultimately we settled on the inverse proportion probability weights and a multi-model approach to optimize non-vulnerable households first and then optimize the other three classes afterwards. This was done to ensure the model accounted for all of the data in the non-vulnerable population which would not be the case when using under-sampling techniques. Therefore, the multi-model approach resulted in a greater sensitivity rate for the three vulnerable classes while not reducing the non-vulnerable classes sensitivity too much. Overall we believe our final model minimizes the limitations of all techniques employed. The most notable benefits of our approach include the utilization of as much data as possible and class weighting to alleviate over-fitting on the majority class in our data. Because of this we believe our final model is the best of the models constructed for accurately classifying poverty vulnerabilities in a way that should enable a more equitable distribution of resources.
 
 
 ```{r,eval=F}
